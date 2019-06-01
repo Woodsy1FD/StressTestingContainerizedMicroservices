@@ -1,0 +1,14 @@
+version: '2.2'
+services:
+  web:
+    build: .
+    ports:
+      - "9008:5000"
+    cpus: 0.1
+    mem_limit: 128M
+    restart: on-failure
+  redis:
+    image: "redis:alpine"
+    cpus: 0.1
+    mem_limit: 128M
+    restart: on-failure
