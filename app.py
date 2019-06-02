@@ -7,7 +7,7 @@ from math import sqrt
 
 
 app = Flask(__name__)
-cache = redis.Redis(host='redis', port=6379)
+cache = redis.Redis(host='redis', port=6379,decode_responses=True) # decode responses so its not aids
 
 
 def get_hit_count():
@@ -21,13 +21,14 @@ def get_hit_count():
             retries -= 1
             time.sleep(0.5)
 
+
 # Determines if n is a prime number
 # Returns: boolean TTrue or False
 def is_prime(n):
     # 2 is obv prime
     if n == 2:
         # Store value in redis key 'primes'
-        cache.append("primes", n)
+        cache.append("primes", str(n)+ ",")
         return True
     # if dividing by 2 = 0 or less than or equal to 1 => not prime
     if n % 2 == 0 or n <= 1:
@@ -44,14 +45,20 @@ def is_prime(n):
         if n % div == 0: # if divisible by a divisor in range, not prime
             return False
     # Store value in redis key 'primes'
-    cache.append("primes", n + ",")
+    cache.append("primes", str(n) + ",")
     return True
+
 
 # Gets all prime values from the redis microservice
 def get_primes_redis():
     x = cache.get("primes")
-    listPrimes = x.split(',')
+    # redis-py returns None if key does not exist in db
+    if x == None:
+        return None
+    # other wise split on , seperator
+    listPrimes = x.split(",")
     del listPrimes[-1] # delete last item in list because of the way values are appended
+    return x
     
 
 # Basic route
@@ -60,16 +67,19 @@ def hello():
     count = get_hit_count()
     return 'Hello World! I have been seen {} times.\n'.format(count)
 
+
 # Route for Requirement 1
 # int:number uses a converter to specify the type
 @app.route('/isPrime/<int:number>')
 def isPrime(number):
     res = is_prime(number)
     if(res):
-        return '{} is prime'
-    return '{} is not prime'
+        return '{} is prime'.format(number)
+    return '{} is not prime'.format(number)
+
 
 # Route for Requirement 2
 @app.route('/primesStored')
 def primesStored():
-    return 'null'
+    listPrimes = get_primes_redis()
+    return listPrimes
