@@ -2,6 +2,7 @@ import time
 
 import redis
 from flask import Flask
+from flask.json import jsonify
 
 from math import sqrt
 
@@ -28,7 +29,8 @@ def is_prime(n):
     # 2 is obv prime
     if n == 2:
         # Store value in redis key 'primes'
-        cache.append("primes", str(n)+ ",")
+        #cache.append("primes", str(n)+ ",")
+        cache.rpush("primeList", n) # add to list
         return True
     # if dividing by 2 = 0 or less than or equal to 1 => not prime
     if n % 2 == 0 or n <= 1:
@@ -44,21 +46,14 @@ def is_prime(n):
     for div in range(3, sqr, 2):
         if n % div == 0: # if divisible by a divisor in range, not prime
             return False
-    # Store value in redis key 'primes'
-    cache.append("primes", str(n) + ",")
+    # Store value in redis list 'primeList'
+    cache.rpush("primeList", n)
     return True
 
-
-# Gets all prime values from the redis microservice
+# Get list of primes from redis
 def get_primes_redis():
-    x = cache.get("primes")
-    # redis-py returns None if key does not exist in db
-    if x == None:
-        return None
-    # other wise split on , seperator
-    listPrimes = x.split(",")
-    del listPrimes[-1] # delete last item in list because of the way values are appended
-    return x
+    listPrime = cache.lrange("primeList", 0, -1)
+    return listPrime
     
 
 # Basic route
@@ -74,12 +69,12 @@ def hello():
 def isPrime(number):
     res = is_prime(number)
     if(res):
-        return '{} is prime'.format(number)
-    return '{} is not prime'.format(number)
+        return '{} is prime\n'.format(number)
+    return '{} is not prime\n'.format(number)
 
 
 # Route for Requirement 2
 @app.route('/primesStored')
 def primesStored():
     listPrimes = get_primes_redis()
-    return listPrimes
+    return jsonify({'primes': listPrimes})
