@@ -29,8 +29,7 @@ def is_prime(n):
     # 2 is obv prime
     if n == 2:
         # Store value in redis key 'primes'
-        #cache.append("primes", str(n)+ ",")
-        cache.rpush("primeList", n) # add to list
+        cache.sadd("primesSet", n)
         return True
     # if dividing by 2 = 0 or less than or equal to 1 => not prime
     if n % 2 == 0 or n <= 1:
@@ -47,12 +46,12 @@ def is_prime(n):
         if n % div == 0: # if divisible by a divisor in range, not prime
             return False
     # Store value in redis list 'primeList'
-    cache.rpush("primeList", n)
+    cache.sadd("primesSet", n)
     return True
 
 # Get list of primes from redis
 def get_primes_redis():
-    listPrime = cache.lrange("primeList", 0, -1)
+    listPrime = cache.smembers("primesSet")
     return listPrime
     
 
@@ -76,5 +75,5 @@ def isPrime(number):
 # Route for Requirement 2
 @app.route('/primesStored')
 def primesStored():
-    listPrimes = get_primes_redis()
+    listPrimes = list(get_primes_redis())
     return jsonify({'primes': listPrimes})
